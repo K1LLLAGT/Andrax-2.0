@@ -1,0 +1,78 @@
+name: Lint
+
+# Baseline quality gate for ANDRAX 2.0: shell linting (68+ scripts), JSON
+# registry validation, and workflow-YAML sanity. Runs on push/PR to main.
+# The error gate stays green today; severity is ratcheted up as scripts are
+# cleaned (see docs/DEVOPS.md).
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.sh'
+      - '**/*.json'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.github/workflows/lint.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck version
+        run: shellcheck --version
+
+      # Gate: fail the build only on ERROR-level findings for now. Warnings and
+      # style issues are reported below but don't block, so we can adopt CI
+      # immediately and tighten the gate over time.
+      - name: ShellCheck (error gate)
+        run: |
+          mapfile -d '' files < <(find . -type f -name '*.sh' \
+            -not -path './android-app/gradle/*' -print0)
+          printf 'Linting %d scripts\n' "${#files[@]}"
+          shellcheck -S error "${files[@]}"
+
+      - name: ShellCheck (full report, non-blocking)
+        if: always()
+        run: |
+          mapfile -d '' files < <(find . -type f -name '*.sh' \
+            -not -path './android-app/gradle/*' -print0)
+          shellcheck -S style "${files[@]}" || true
+
+  data:
+    name: Registries & Workflow YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON (registries etc.)
+        run: |
+          rc=0
+          while IFS= read -r -d '' f; do
+            echo "jq: $f"
+            jq empty "$f" || rc=1
+          done < <(find . -type f -name '*.json' -not -path './android-app/gradle/*' -print0)
+          exit $rc
+
+      - name: Validate workflow YAML definitions
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          bad = 0
+          for f in glob.glob('workflows/**/*.yaml', recursive=True) + glob.glob('workflows/**/*.yml', recursive=True):
+              try:
+                  yaml.safe_load(open(f))
+                  print(f"ok:  {f}")
+              except Exception as e:
+                  print(f"BAD: {f}: {e}"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
