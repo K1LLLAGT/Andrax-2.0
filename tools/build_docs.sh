@@ -25,13 +25,13 @@ HDR
 jq -r '
   .categories[] |
   "## " + .name + " (" + .id + ")\n" +
-  ( .tools[] |
-    "- **" + .name + "** (`" + .id + "`)\n" +
-    "  - Script: `" + .script + "`\n" +
-    "  - Description: " + .description + "\n" +
-    "  - Example: `" + .example + "`\n" +
-    "  - Privileged: " + (if .privileged then "yes" else "no" end) + "\n"
-  )
+  ( [ .tools[] |
+      "- **" + .name + "** (`" + .id + "`)\n" +
+      "  - Script: `" + .script + "`\n" +
+      "  - Description: " + .description + "\n" +
+      "  - Example: `" + .example + "`\n" +
+      "  - Privileged: " + (if .privileged then "yes" else "no" end)
+    ] | join("\n") )
 ' "$REG_TOOLS" >> "$TOOLS_MD"
 
 # Workflow documentation

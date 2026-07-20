@@ -6,7 +6,9 @@
 
 set -euo pipefail
 
-ANDRAX_HOME="$HOME/ANDRAX/ANDRAX-2.0"
+# Resolve paths portably from this script's location instead of hardcoding.
+_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$_self_dir/../termux-backend/config/paths.sh"
 LAUNCHER="$ANDRAX_HOME/launcher/andrax-launcher.sh"
 
 cmd="${1:-}"; shift || true

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thin dark theme for the ANDRAX 2.0 front-end. -->
+    <style name="Theme.Andrax" parent="Theme.AppCompat.DayNight.DarkActionBar" />
+</resources>

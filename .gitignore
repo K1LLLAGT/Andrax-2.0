@@ -1,0 +1,31 @@
+# ANDRAX 2.0 — ignore runtime state and secrets.
+
+# Per-user runtime state (logs, captured output, run scratch)
+.andrax/
+launcher/logs/
+launcher/ipc/
+var/log/
+var/run/
+*.log
+
+# Signing material — NEVER commit (see docs/dev/05-signing-pipeline.md)
+*.keystore
+*.jks
+android-app/keystore.properties
+release.keystore
+*.asc
+
+# Android / Gradle build outputs
+android-app/build/
+android-app/.gradle/
+android-app/local.properties
+*.apk
+*.aab
+
+# Release artifacts
+ANDRAX-2.0.tar.gz
+*.sha256
+
+# Editor / OS cruft
+.DS_Store
+*.swp

@@ -1,0 +1,94 @@
+name: release
+
+# Builds and publishes an ANDRAX 2.0 release when a v* tag is pushed:
+#   * the source tarball (ANDRAX-2.0.tar.gz) + SHA-256
+#   * the signed release APK (when signing secrets are configured) + SHA-256
+# See docs/dev/07-release-lifecycle.md and docs/dev/12-release-instructions.md.
+#
+# Required repository secrets for APK signing (see docs/dev/05-signing-pipeline.md):
+#   ANDRAX_KEYSTORE_B64   base64 of the release keystore
+#   ANDRAX_KEYSTORE_PASS  keystore password
+#   ANDRAX_KEY_ALIAS      key alias
+#   ANDRAX_KEY_PASS       key password
+# If the keystore secret is absent, an unsigned release APK is published instead.
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify VERSION matches the tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"           # e.g. 2.1.0
+          ver_reg="$(jq -r .version launcher-system/tool_registry.json)"
+          ver_file="$(cat VERSION)"            # short MAJOR.MINOR
+          echo "tag=$tag registry=$ver_reg VERSION=$ver_file"
+          test "$ver_reg" = "$tag" || { echo "registry .version ($ver_reg) != tag ($tag)"; exit 1; }
+          test "${ver_reg%.*}" = "$ver_file" || { echo "VERSION ($ver_file) != registry major.minor"; exit 1; }
+
+      - name: Build source tarball
+        run: |
+          git archive --format=tar.gz --prefix=ANDRAX-2.0/ -o ANDRAX-2.0.tar.gz "$GITHUB_REF_NAME"
+          sha256sum ANDRAX-2.0.tar.gz > ANDRAX-2.0.tar.gz.sha256
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode release keystore (if configured)
+        id: keystore
+        env:
+          ANDRAX_KEYSTORE_B64: ${{ secrets.ANDRAX_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$ANDRAX_KEYSTORE_B64" ]; then
+            echo "$ANDRAX_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No signing secret set — release APK will be unsigned."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release APK
+        working-directory: android-app
+        env:
+          ANDRAX_KEYSTORE_FILE: ${{ steps.keystore.outputs.present == 'true' && format('{0}/release.keystore', runner.temp) || '' }}
+          ANDRAX_KEYSTORE_PASS: ${{ secrets.ANDRAX_KEYSTORE_PASS }}
+          ANDRAX_KEY_ALIAS: ${{ secrets.ANDRAX_KEY_ALIAS }}
+          ANDRAX_KEY_PASS: ${{ secrets.ANDRAX_KEY_PASS }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Collect + checksum APK
+        run: |
+          apk="$(ls android-app/build/outputs/apk/release/*.apk | head -1)"
+          cp "$apk" .
+          sha256sum "$(basename "$apk")" > "$(basename "$apk").sha256"
+          ls -la *.apk *.sha256
+
+      - name: Verify APK signature (when signed)
+        if: steps.keystore.outputs.present == 'true'
+        run: |
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort | tail -1)"
+          "$bt/apksigner" verify --print-certs android-app/build/outputs/apk/release/*.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ANDRAX 2.0 — ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            ANDRAX-2.0.tar.gz
+            ANDRAX-2.0.tar.gz.sha256
+            *.apk
+            *.apk.sha256

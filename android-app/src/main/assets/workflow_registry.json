@@ -1,1 +1,46 @@
-{ "test": true }
+{ "workflows": [
+  {
+    "id": "exploit_chain_example",
+    "name": "Exploit Chain (demo)",
+    "type": "shell",
+    "source": "workflow-engine/workflows/exploit_chain_example.sh",
+    "description": "Recon → vuln check → Metasploit auxiliary run (scoped demo).",
+    "example": "andrax run-workflow exploit_chain_example -- <args>"
+  }
+,
+  {
+    "id": "network_scan_full",
+    "name": "Full Network Scan",
+    "type": "shell",
+    "source": "workflow-engine/workflows/network_scan_full.sh",
+    "description": "All-ports scan + service/version + default NSE scripts.",
+    "example": "andrax run-workflow network_scan_full -- <args>"
+  }
+,
+  {
+    "id": "recon_basic",
+    "name": "Basic Recon",
+    "type": "shell",
+    "source": "workflow-engine/workflows/recon_basic.sh",
+    "description": "whois + DNS enum + nmap service scan + HTTP title for a target.",
+    "example": "andrax run-workflow recon_basic -- <args>"
+  }
+,
+  {
+    "id": "web_app_assessment",
+    "name": "Web App Assessment",
+    "type": "shell",
+    "source": "workflow-engine/workflows/web_app_assessment.sh",
+    "description": "Content discovery + nikto + sqlmap smoke test against a URL.",
+    "example": "andrax run-workflow web_app_assessment -- <args>"
+  }
+,
+  {
+    "id": "fast-scan",
+    "name": "fast-scan",
+    "type": "yaml",
+    "source": "workflows/recon/fast-scan.yaml",
+    "description": "YAML workflow.",
+    "example": "andrax run-workflow fast-scan -- <args>"
+  }
+] }

@@ -1,0 +1,76 @@
+name: ci
+
+# Validates the ANDRAX 2.0 shell backend, registries, and generated docs on
+# every push and pull request. See docs/dev/04-cicd-pipeline.md.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+
+      - name: Syntax check every shell script
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            bash -n "$f" || { echo "syntax error: $f"; fail=1; }
+          done < <(git ls-files '*.sh')
+          exit "$fail"
+
+      - name: ShellCheck (errors only)
+        run: |
+          git ls-files '*.sh' -z | xargs -0 shellcheck -S error
+
+      - name: Registries are valid JSON
+        run: |
+          jq empty launcher-system/tool_registry.json
+          jq empty android-app/src/main/assets/tool_registry.json
+          jq empty android-app/src/main/assets/workflow_registry.json
+
+      - name: Generated artifacts are up to date
+        run: |
+          bash tools/build_registry.sh
+          bash tools/build_workflow_registry.sh
+          bash tools/build_docs.sh
+          git diff --exit-code -- \
+            android-app/src/main/assets/tool_registry.json \
+            android-app/src/main/assets/workflow_registry.json \
+            docs/TOOLS.md docs/WORKFLOWS.md \
+          || { echo "Registries/docs are stale — run tools/build_*.sh and commit."; exit 1; }
+
+      - name: Backend consistency + broken-script audits
+        run: |
+          bash tools/backend_consistency_auditor.sh
+          bash tools/broken_script_locator.sh
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: android-app
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: andrax-app-debug
+          path: android-app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
