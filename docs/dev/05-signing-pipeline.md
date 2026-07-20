@@ -139,9 +139,12 @@ it only inside the release job:
 | `ANDRAX_GPG_PRIVATE_KEY` | ASCII-armored GPG private key (for tarball signing) |
 | `ANDRAX_GPG_PASSPHRASE` | GPG passphrase |
 
-The release job decodes the keystore to disk, runs `assembleRelease`, signs the
-tarball, then the runner is destroyed. See the `release.yml` skeleton in
-[CI/CD § B.2](04-cicd-pipeline.md#b2-releaseyml--build--publish-on-a-tag).
+The committed `release.yml` decodes `ANDRAX_KEYSTORE_B64` to
+`$RUNNER_TEMP/release.keystore`, passes the other three to Gradle as env vars,
+runs `assembleRelease`, verifies the signature with `apksigner`, then the runner
+is destroyed. For the exact click-path and `gh secret set` commands to configure
+these, see **[Repository settings § 13.1](13-repository-settings.md#131-actions-secrets-for-apk-signing)**;
+for the workflow itself see [CI/CD § B.2](04-cicd-pipeline.md#b2-releaseyml--build--publish-on-a-tag).
 
 ## 5.5 Key management rules
 

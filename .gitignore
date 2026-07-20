@@ -26,6 +26,13 @@ android-app/local.properties
 ANDRAX-2.0.tar.gz
 *.sha256
 
+# Jekyll / GitHub Pages build outputs (docs site is built by pages.yml)
+_site/
+docs/_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+
 # Editor / OS cruft
 .DS_Store
 *.swp

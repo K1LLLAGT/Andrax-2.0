@@ -172,10 +172,18 @@ jobs:
             android-app/build/outputs/apk/release/*.apk
 ```
 
-### B.3 `pages.yml` (optional, recommended) — publish `docs/`
+### B.3 `pages.yml` — publish `docs/` (committed)
 
-Render `docs/` (including this `dev/` set and the generated `TOOLS.md`/
-`WORKFLOWS.md`) to GitHub Pages on push to `main`.
+Renders `docs/` (this `dev/` set plus the generated `TOOLS.md`/`WORKFLOWS.md`) to
+a GitHub Pages site on push to `main` (and on demand via `workflow_dispatch`). It
+uses the official Pages flow — `configure-pages` → `jekyll-build-pages`
+(source `./docs`) → `upload-pages-artifact` → `deploy-pages`. `docs/_config.yml`
+enables the `jekyll-relative-links`, `jekyll-optional-front-matter`, and
+`jekyll-readme-index` plugins so the `.md` cross-links resolve and each folder's
+`README.md` becomes its index.
+
+**One-time setup:** enable it in **Settings → Pages → Source = GitHub Actions**.
+See [Repository settings § 13.2](13-repository-settings.md#132-github-pages-for-pagesyml).
 
 ### CI/CD design principles
 

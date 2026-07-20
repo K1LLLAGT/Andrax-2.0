@@ -130,14 +130,12 @@ Inspection/debug helpers (as needed): `tool_dependency_mapper.sh`,
 The original consistency bugs (`ANDRAX_HOME` conventions, the registry/description
 builders, the tool/workflow dispatch mismatches, the stub workflow registry) have
 been fixed — see [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies).
-The app now builds (Gradle project + debug/release APK), and CI (`ci.yml`) +
-the tag-driven `release.yml` with APK signing are in place. The high-value
-remaining work is incremental:
+The app now builds (Gradle project + debug/release APK), and CI (`ci.yml`), the
+tag-driven `release.yml` with APK signing, and the docs site (`pages.yml`) are
+all in place. The high-value remaining work is incremental:
 
 * **Add a `tools/bump_version.sh`** to enforce version consistency
   ([Versioning § 6.4](06-versioning-system.md#64-bumping-a-version-the-rule)).
-* **Add an optional GitHub Pages workflow** to publish `docs/`
-  ([CI/CD § B.3](04-cicd-pipeline.md#b3-pagesyml-optional-recommended--publish-docs)).
 * **Grow the YAML workflow runner** into a real parser with multi-variable
   substitution ([Workflow registry § 9.4](09-workflow-registry.md#94-anatomy-of-a-yaml-workflow)).
 * **Replace the naive app argument tokenizer** with a shell-aware splitter
