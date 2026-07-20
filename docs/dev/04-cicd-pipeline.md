@@ -1,15 +1,13 @@
 # 4. CI/CD Pipeline
 
-> **Current state:** a shell-side CI workflow now exists at
-> `.github/workflows/ci.yml` — it runs on every push and PR (syntax check,
-> ShellCheck, registry/doc JSON validity, generated-artifact drift check, and the
-> backend consistency + broken-script audits). There is still **no** Gradle
-> project, so the Android app build and the release/signing jobs are documented
-> and stubbed but not yet active. Underneath CI, the same checks are just the
-> **local, developer-run shell scripts** under `tools/`, so you can reproduce CI
-> on your machine. This document describes (A) the local pipeline and (B) the
-> GitHub Actions design — the parts of (B) already committed, and the parts still
-> recommended.
+> **Current state:** CI/CD is wired up. `.github/workflows/ci.yml` runs on every
+> push/PR with two jobs — a `shell` job (syntax check, ShellCheck, registry/doc
+> JSON validity, generated-artifact drift check, backend audits) and an `app` job
+> that builds the debug APK. `.github/workflows/release.yml` runs on a `v*` tag
+> and builds the source tarball + the signed release APK and publishes a GitHub
+> Release. Underneath CI, every check is just a `tools/` script or a Gradle task,
+> so you can reproduce it locally. This document describes (A) the local pipeline
+> and (B) the committed GitHub Actions workflows (plus an optional Pages one).
 
 ## A. Current pipeline (local, manual)
 
@@ -118,54 +116,63 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
       - name: Build debug APK
         working-directory: android-app
-        run: ./gradlew assembleDebug        # requires the Gradle project (build-notes.md)
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 ```
 
-### B.2 `release.yml` — build & publish on a tag
+### B.2 `release.yml` — build & publish on a tag (committed)
 
-Triggered by pushing a `v*` tag. Produces the two release artifacts:
+Triggered by pushing a `v*` tag. The committed workflow:
 
-1. The **source tarball** `ANDRAX-2.0.tar.gz` (the thing `INSTALL.md` extracts).
-2. The **signed release APK** (see [Signing pipeline](05-signing-pipeline.md)).
+1. Asserts `VERSION` + registry `.version` match the tag.
+2. Builds the **source tarball** `ANDRAX-2.0.tar.gz` + SHA-256.
+3. Decodes the keystore from the `ANDRAX_KEYSTORE_B64` secret (if set) and builds
+   the **signed release APK** — or an unsigned one if no secret is configured —
+   then verifies the signature with `apksigner`.
+4. Publishes a GitHub Release with the tarball, APK, and checksums.
+
+The committed `.github/workflows/release.yml` is the source of truth; the sketch
+below shows the shape.
 
 ```yaml
 name: release
 on:
   push: { tags: [ 'v*' ] }
+permissions: { contents: write }
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Verify VERSION matches tag
-        run: test "v$(cat VERSION)" = "${GITHUB_REF_NAME%.*}" -o "v$(cat VERSION)" = "$GITHUB_REF_NAME"
-      - name: Build source tarball
         run: |
-          name="ANDRAX-2.0"
-          git archive --format=tar.gz --prefix="$name/" -o "$name.tar.gz" HEAD
+          tag="${GITHUB_REF_NAME#v}"
+          test "$(jq -r .version launcher-system/tool_registry.json)" = "$tag"
+      - name: Build source tarball
+        run: git archive --format=tar.gz --prefix=ANDRAX-2.0/ -o ANDRAX-2.0.tar.gz "$GITHUB_REF_NAME"
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
       - name: Build signed APK
         working-directory: android-app
         env:
-          ANDRAX_KEYSTORE_B64: ${{ secrets.ANDRAX_KEYSTORE_B64 }}
+          ANDRAX_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
           ANDRAX_KEYSTORE_PASS: ${{ secrets.ANDRAX_KEYSTORE_PASS }}
           ANDRAX_KEY_ALIAS: ${{ secrets.ANDRAX_KEY_ALIAS }}
           ANDRAX_KEY_PASS: ${{ secrets.ANDRAX_KEY_PASS }}
         run: |
-          echo "$ANDRAX_KEYSTORE_B64" | base64 -d > release.keystore
-          ./gradlew assembleRelease
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+          echo "${{ secrets.ANDRAX_KEYSTORE_B64 }}" | base64 -d > "$ANDRAX_KEYSTORE_FILE"
+          ./gradlew assembleRelease --no-daemon
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
             ANDRAX-2.0.tar.gz
             android-app/build/outputs/apk/release/*.apk
 ```
 
-### B.3 `pages.yml` (optional) — publish `docs/`
+### B.3 `pages.yml` (optional, recommended) — publish `docs/`
 
 Render `docs/` (including this `dev/` set and the generated `TOOLS.md`/
 `WORKFLOWS.md`) to GitHub Pages on push to `main`.

@@ -89,62 +89,39 @@ bash tools/test_pipeline.sh                         # launcher + recon_basic
 
 ## 3. Build the Android app (APK)
 
-The `android-app/src/` tree is a **skeleton** — you must add the Gradle project
-around it first. Follow `android-app/build-notes.md`; the minimum is:
+`android-app/` is a **complete single-module Gradle project** (AGP 8.5.2, Kotlin
+1.9.24, compileSdk 34, minSdk 26). No scaffolding needed — just point it at an
+Android SDK and build. See `android-app/build-notes.md` for the full layout.
 
-```
-android-app/
-├── build.gradle.kts          # module build file (from build-notes.md)
-├── settings.gradle.kts
-├── gradle/…                  # wrapper
-└── src/main/
-    ├── AndroidManifest.xml            # provided
-    ├── assets/tool_registry.json      # provided (keep synced)
-    ├── java/com/andrax/two/…          # provided
-    └── res/
-        ├── values/themes.xml          # define Theme.Andrax
-        └── mipmap-*/ic_launcher…      # a launcher icon
-```
+### Prerequisites
 
-Key `build.gradle.kts` config (see `build-notes.md` for the full file):
-
-```kotlin
-android {
-    namespace = "com.andrax.two"
-    compileSdk = 34
-    defaultConfig {
-        applicationId = "com.andrax.two"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 1           // see Versioning §6.2 for the derivation
-        versionName = "2.0.0"
-    }
-    kotlinOptions { jvmTarget = "17" }
-}
-dependencies {
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    // org.json ships with the platform — no dependency needed
-}
-```
+* JDK 17 (JDK 21 also runs Gradle fine).
+* Android SDK with `platforms;android-34` and `build-tools;34.0.0`. Set
+  `ANDROID_HOME`/`ANDROID_SDK_ROOT`, or create a git-ignored
+  `android-app/local.properties` with `sdk.dir=/path/to/Android/sdk`.
 
 ### Debug build
 
 ```sh
 cd android-app
-./gradlew assembleDebug          # → build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug          # → build/outputs/apk/debug/andrax-2.0-app-debug.apk
 ./gradlew installDebug           # onto the device that also runs Termux
 ```
 
 ### Release build (signed)
 
-Requires the release keystore + Gradle signing config from
+The `release` build type signs **only when signing credentials are present**;
+otherwise it produces `…-release-unsigned.apk` (so `assembleRelease` always
+runs). Provide credentials via env vars (CI) or a local, git-ignored
+`android-app/keystore.properties` (copy `keystore.properties.example`). See
 [Signing § 5.2](05-signing-pipeline.md#52-apk-signing-model):
 
 ```sh
 cd android-app
-./gradlew assembleRelease        # → build/outputs/apk/release/app-release.apk
-apksigner verify --print-certs build/outputs/apk/release/app-release.apk
+cp keystore.properties.example keystore.properties   # fill in real values
+./gradlew assembleRelease        # → build/outputs/apk/release/andrax-2.0-app-release.apk
+"$ANDROID_HOME"/build-tools/34.0.0/apksigner verify --print-certs \
+  build/outputs/apk/release/andrax-2.0-app-release.apk
 ```
 
 ### Wire up the app↔Termux bridge (one-time, on device)
@@ -169,15 +146,14 @@ the standard location `$HOME/ANDRAX-2.0`
 set -euo pipefail
 bash tools/normalize_shebangs.sh
 bash tools/fix_permissions.sh
-bash tools/build_registry.sh
+bash tools/build_registry.sh            # syncs the app asset from canonical + validates
 bash tools/build_workflow_registry.sh
 bash tools/build_docs.sh
-cp launcher-system/tool_registry.json android-app/src/main/assets/tool_registry.json
 bash tools/backend_consistency_auditor.sh
 bash tools/broken_script_locator.sh
-( cd android-app && ./gradlew assembleDebug ) || echo "app: add Gradle project first (build-notes.md)"
+( cd android-app && ./gradlew assembleDebug ) || echo "app: set ANDROID_HOME / local.properties (build-notes.md)"
 echo "Build complete."
 ```
 
-This mirrors what the recommended CI `ci.yml` does — see
+This mirrors what CI does — the `shell` and `app` jobs in `ci.yml`. See
 [CI/CD § B.1](04-cicd-pipeline.md#b1-ciyml--validate-every-push--pr).

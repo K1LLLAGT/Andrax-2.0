@@ -1,12 +1,15 @@
 # 5. Signing Pipeline
 
-> **Current state:** there is **no signing configuration in the repository** — no
-> keystore, no Gradle signing config, no `apksigner` usage. The Android app is a
-> skeleton with no Gradle project yet, so today it can only be built as a
-> **debug** APK (auto-signed by Android Studio's debug keystore) once you add the
-> Gradle files from `android-app/build-notes.md`. The shell backend is delivered
-> as a source tarball and is **not** signed. This document defines the signing
-> model to adopt for real releases.
+> **Current state:** the Gradle **release signing config exists and works**
+> (`android-app/build.gradle.kts` — `signingConfigs["release"]`, wired to the
+> `release` build type). It reads credentials from environment variables (CI) or
+> a git-ignored `android-app/keystore.properties` (developers); if no keystore is
+> configured it produces an **unsigned** release APK so the build still runs.
+> `.github/workflows/release.yml` performs the signed build + `apksigner`
+> verification on a `v*` tag. What is **not** in the repo (correctly) is the
+> release **keystore itself** and its passwords — those are secrets. The shell
+> backend is delivered as a source tarball and is integrity-protected with
+> checksums + GPG rather than code-signed (§ 5.3).
 
 ## 5.1 What actually needs signing
 

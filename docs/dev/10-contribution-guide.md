@@ -130,15 +130,15 @@ Inspection/debug helpers (as needed): `tool_dependency_mapper.sh`,
 The original consistency bugs (`ANDRAX_HOME` conventions, the registry/description
 builders, the tool/workflow dispatch mismatches, the stub workflow registry) have
 been fixed — see [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies).
-The high-value remaining work:
+The app now builds (Gradle project + debug/release APK), and CI (`ci.yml`) +
+the tag-driven `release.yml` with APK signing are in place. The high-value
+remaining work is incremental:
 
-* **Flesh out the Gradle project** so the app actually builds
-  ([Build § 3](11-build-instructions.md#3-build-the-android-app-apk)), then
-  enable the `app` job in `.github/workflows/ci.yml`.
-* **Add the release workflow + APK signing** from
-  [CI/CD § B.2](04-cicd-pipeline.md#b2-releaseyml--build--publish-on-a-tag) and
-  [Signing](05-signing-pipeline.md).
 * **Add a `tools/bump_version.sh`** to enforce version consistency
   ([Versioning § 6.4](06-versioning-system.md#64-bumping-a-version-the-rule)).
+* **Add an optional GitHub Pages workflow** to publish `docs/`
+  ([CI/CD § B.3](04-cicd-pipeline.md#b3-pagesyml-optional-recommended--publish-docs)).
 * **Grow the YAML workflow runner** into a real parser with multi-variable
   substitution ([Workflow registry § 9.4](09-workflow-registry.md#94-anatomy-of-a-yaml-workflow)).
+* **Replace the naive app argument tokenizer** with a shell-aware splitter
+  ([Android app § 3.7](03-android-app-structure.md#37-security--input-handling-notes)).

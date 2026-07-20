@@ -55,16 +55,15 @@ paths never drift.
 
 ## A note on current state vs. recommendations
 
-This project is still at an early stage. The backend, engine, launcher, and
-workflow layers work and are internally consistent; a shell-side **CI** workflow
-runs on every push/PR. What does **not** yet exist as automation is anything that
-depends on the Android **Gradle project** — the APK build, APK signing, and the
-tag-driven release pipeline. Where a document covers one of those, it clearly
-separates:
+The backend, engine, launcher, and workflow layers work and are internally
+consistent. The Android app is a complete Gradle project that builds a debug APK
+and a signed release APK. CI runs on every push/PR (`ci.yml`: shell checks + the
+debug APK build) and a tag-driven `release.yml` builds, signs, and publishes.
+A few documents still separate:
 
 * **Current state** — what the repo actually does today, and
-* **Recommended** — a concrete, ready-to-adopt design you can drop in.
+* **Recommended** — a concrete, ready-to-adopt design you can drop in
 
-See [Known gaps](01-architecture-overview.md#known-gaps--inconsistencies) for the
-consolidated list — most items are now marked **resolved**, with the Gradle/
-signing/release work called out as the remaining open thread.
+for genuinely optional extras (e.g. a GitHub Pages workflow, a `bump_version.sh`
+helper). See [Known gaps](01-architecture-overview.md#known-gaps--inconsistencies)
+for the consolidated list — the original items are all marked **resolved**.

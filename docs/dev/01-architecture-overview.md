@@ -200,12 +200,18 @@ still make sense. The remaining open items are called out at the end.
    longer empty. As a bonus, the YAML workflow runner now substitutes
    `{{target}}` and correctly strips/handles the `[privileged]` marker.
 
+7. **Android build + CI + signing now in place.** ✅ `android-app/` is a
+   complete single-module Gradle project (AGP 8.5.2, Kotlin 1.9.24, wrapper
+   pinned to Gradle 8.9) that builds a debug APK, and a release build signed via
+   env-var/`keystore.properties` credentials (unsigned fallback when no keystore
+   is configured). `.github/workflows/ci.yml` builds the debug APK on every
+   push/PR (the `app` job) alongside the shell checks; `.github/workflows/release.yml`
+   builds + signs + publishes on a `v*` tag. See [CI/CD](04-cicd-pipeline.md),
+   [Signing](05-signing-pipeline.md), and
+   [Build § 3](11-build-instructions.md#3-build-the-android-app-apk).
+
 ### Still open
 
-7. **No APK signing config, no Gradle wrapper.** The Android app is still a
-   source **skeleton** with no Gradle project, so there is nothing to sign yet.
-   A working shell-side **CI** workflow now exists at `.github/workflows/ci.yml`
-   (syntax + shellcheck + registry/doc drift + audits); the app-build and
-   release/signing jobs are documented and stubbed but await the Gradle project.
-   See [CI/CD](04-cicd-pipeline.md), [Signing](05-signing-pipeline.md), and
-   [Build § 3](11-build-instructions.md#3-build-the-android-app-apk).
+Nothing structural. Remaining work is incremental polish — e.g. a
+`tools/bump_version.sh` to enforce version consistency, an optional GitHub Pages
+workflow for `docs/`, and growing the YAML workflow runner into a full parser.
