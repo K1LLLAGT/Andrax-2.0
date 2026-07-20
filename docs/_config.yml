@@ -1,0 +1,29 @@
+# Jekyll config for the ANDRAX 2.0 docs site (GitHub Pages).
+# Built by .github/workflows/pages.yml with actions/jekyll-build-pages, which
+# runs the github-pages gem — so only its whitelisted themes/plugins are used.
+title: ANDRAX 2.0 — Documentation
+description: Developer documentation for ANDRAX 2.0, a user-space pentest workbench for Termux.
+theme: jekyll-theme-cayman
+
+# All three plugins ship in the github-pages gem's default set:
+#  - relative-links:        rewrite links to *.md into their generated URLs
+#  - optional-front-matter: process .md files that have no YAML front matter
+#  - readme-index:          serve each directory's README.md as its index page
+plugins:
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+
+relative_links:
+  enabled: true
+  collections: false
+
+optional_front_matter:
+  remove_originals: true
+
+readme_index:
+  with_frontmatter: true
+
+# Keep build inputs lean and predictable.
+exclude:
+  - _config.yml

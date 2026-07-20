@@ -17,9 +17,9 @@ repository root (`README.md`, `INSTALL.md`) and in `docs/TOOLS.md` /
 |---|----------|----------------|
 | 1 | [Architecture overview](01-architecture-overview.md) | The five layers, data flow, execution paths, design principles |
 | 2 | [Backend structure](02-backend-structure.md) | `termux-backend/`, `launcher-system/`, `scripting-engine/`, `workflow-engine/`, `bin/`, the shared libraries |
-| 3 | [Android app structure](03-android-app-structure.md) | Kotlin skeleton, activities, `ToolRepository`, `TermuxLauncher`, the RUN_COMMAND bridge |
-| 4 | [CI/CD pipeline](04-cicd-pipeline.md) | Current (local) build pipeline, and a recommended GitHub Actions design |
-| 5 | [Signing pipeline](05-signing-pipeline.md) | APK signing model, keystore handling, recommended release-signing flow |
+| 3 | [Android app structure](03-android-app-structure.md) | Gradle project, activities, `ToolRepository`, `TermuxLauncher`, the RUN_COMMAND bridge |
+| 4 | [CI/CD pipeline](04-cicd-pipeline.md) | The local pipeline and the committed GitHub Actions workflows (`ci`, `release`, `pages`) |
+| 5 | [Signing pipeline](05-signing-pipeline.md) | APK signing model, keystore handling, the release-signing flow |
 | 6 | [Versioning system](06-versioning-system.md) | Where versions live (`VERSION`, registry, Gradle), the scheme, how to bump |
 | 7 | [Release lifecycle](07-release-lifecycle.md) | Branching, stages, gates, artifacts, from commit to tagged release |
 | 8 | [Tool registry](08-tool-registry.md) | `tool_registry.json` schema, canonical vs. generated copies, sync rules |
@@ -27,6 +27,7 @@ repository root (`README.md`, `INSTALL.md`) and in `docs/TOOLS.md` /
 | 10 | [Contribution guide](10-contribution-guide.md) | How to add tools/workflows, coding conventions, the audit tooling, PR checklist |
 | 11 | [Build instructions](11-build-instructions.md) | Building the backend, the registries, the docs, and the APK |
 | 12 | [Release instructions](12-release-instructions.md) | Step-by-step cutting a release + tarball + APK |
+| 13 | [Repository settings](13-repository-settings.md) | Signing secrets, Pages, branch protection, Actions permissions |
 
 ## The 30-second model
 

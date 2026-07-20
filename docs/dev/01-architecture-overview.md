@@ -212,6 +212,9 @@ still make sense. The remaining open items are called out at the end.
 
 ### Still open
 
-Nothing structural. Remaining work is incremental polish — e.g. a
-`tools/bump_version.sh` to enforce version consistency, an optional GitHub Pages
-workflow for `docs/`, and growing the YAML workflow runner into a full parser.
+Nothing structural. CI (`ci.yml`), the tag-driven signed release (`release.yml`),
+and the docs site (`pages.yml`) are all committed. Remaining work is incremental
+polish — e.g. a `tools/bump_version.sh` to enforce version consistency, growing
+the YAML workflow runner into a full parser, and a shell-aware argument splitter
+in the app. Per-repo one-time setup (signing secrets, Pages source) is in
+[Repository settings](13-repository-settings.md).
