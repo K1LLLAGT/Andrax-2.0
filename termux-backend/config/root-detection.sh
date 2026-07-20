@@ -10,6 +10,7 @@
 #   _check_su_available      Check if `su` command is available
 #   _get_root_method         Determine how root is available (direct/magisk/none)
 #   _root_capabilities_check Get detailed root capability report
+#   _capability_matrix       Show feature availability matrix
 
 set -euo pipefail
 
