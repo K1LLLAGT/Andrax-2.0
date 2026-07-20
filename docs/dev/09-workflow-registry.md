@@ -20,12 +20,15 @@ if none exists does it look for `workflows/**/<id>.yaml`.
 | File | Role | Read by |
 |------|------|---------|
 | `launcher-system/tool_registry.json` → `.workflows[]` | **Canonical** workflow list | `list_workflows.sh`, `run_workflow_by_id.sh` |
-| `android-app/src/main/assets/workflow_registry.json` | App workflow catalog | (intended) the app; **currently a stub `{ "test": true }`** |
+| `android-app/src/main/assets/workflow_registry.json` | App workflow catalog | the app; **generated** by `tools/build_workflow_registry.sh` |
 
-> **Gap #6:** the app-side `workflow_registry.json` is a placeholder, so
-> `tools/build_docs.sh` currently produces an **empty** `docs/WORKFLOWS.md`. Run
-> `tools/build_workflow_registry.sh` to generate it from the actual shell + YAML
-> workflows, then `build_docs.sh` to populate `docs/WORKFLOWS.md`.
+> The app-side `workflow_registry.json` is generated from the actual shell + YAML
+> workflows (shell entries enriched with curated names/descriptions from the
+> canonical `.workflows[]`). Regenerate it, then rebuild the docs:
+> ```sh
+> bash tools/build_workflow_registry.sh   # → workflow_registry.json
+> bash tools/build_docs.sh                # → docs/WORKFLOWS.md
+> ```
 
 ### Canonical `.workflows[]` schema
 
@@ -111,17 +114,23 @@ steps:
 ```
 
 The YAML runner (`bin/andrax-workflow-run.sh`) extracts each `name:`/`run:`
-pair and executes `run:` through an **adapter**:
+pair, substitutes the `{{target}}` placeholder with the first argument passed
+after the workflow id, detects and strips the `[privileged]` marker, then
+executes `run:` through an **adapter**:
 
 * `bin/adapters/adapter-termux.sh` — `eval "$CMD"` (unprivileged, default).
 * `bin/adapters/adapter-magisk.sh` — `su -c "$CMD"` (privileged) — selected only
-  when the command text contains the literal marker `[privileged]`.
+  when the command text contains the marker `[privileged]` (the marker itself is
+  stripped before execution).
 
-> The current YAML runner is intentionally minimal: it greps `name:`/`run:` and
-> does **not** yet substitute `{{target}}` placeholders or parse nested YAML.
-> Treat YAML workflows as an emerging feature; shell workflows are the mature
-> path. A `{{var}}` substitution pass and a real YAML parser are the natural next
-> steps (`tools/workflow_yaml_linter.sh` already lints the format).
+So `andrax run-workflow fast-scan -- example.com` runs
+`ping -c 1 example.com` then `nmap -T4 -p- example.com`.
+
+> The YAML runner is intentionally minimal: it greps `name:`/`run:` and supports
+> the single `{{target}}` placeholder — it does **not** parse nested YAML or
+> arbitrary `{{var}}` names. Shell workflows remain the mature path for anything
+> more complex. A real YAML parser and multi-variable substitution are the
+> natural next steps (`tools/workflow_yaml_linter.sh` already lints the format).
 
 ## 9.5 Running workflows
 

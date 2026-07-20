@@ -1,83 +1,50 @@
 #!/usr/bin/env bash
-# ANDRAX 2.0 — Tool Registry Builder
-# Scans termux-backend/tools/*/* and generates tool_registry.json
+# ANDRAX 2.0 — Tool Registry Sync + Validator
+#
+# The canonical tool registry is the hand-authored, richer
+# launcher-system/tool_registry.json (this is ANDRAX_REGISTRY, what the engine,
+# launcher, and workflows actually read). The Android app reads a byte-for-byte
+# copy at android-app/src/main/assets/tool_registry.json.
+#
+# This script keeps the app asset in sync with the canonical registry and
+# validates that every tool script on disk is registered (and every registered
+# script exists). It deliberately does NOT regenerate the registry from the
+# filesystem: display names, icons, curated descriptions, examples, and the
+# workflow list cannot be derived from the scripts and would be lost.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CANON="$ROOT/launcher-system/tool_registry.json"
 TOOLS_DIR="$ROOT/termux-backend/tools"
 OUT="$ROOT/android-app/src/main/assets/tool_registry.json"
 
-tmp="$(mktemp)"
-echo '{ "categories": [' > "$tmp"
+command -v jq >/dev/null 2>&1 || { echo "jq required (pkg install jq)"; exit 2; }
+[ -f "$CANON" ] || { echo "canonical registry missing: $CANON"; exit 3; }
+jq empty "$CANON" 2>/dev/null || { echo "canonical registry is not valid JSON: $CANON"; exit 4; }
 
-first_category=true
+status=0
 
-for category_dir in "$TOOLS_DIR"/*; do
-    [ -d "$category_dir" ] || continue
-    category_id="$(basename "$category_dir")"
-    category_name="$(echo "$category_id" | sed 's/_/ /g')"
-
-    # Category comma handling
-    if [ "$first_category" = true ]; then
-        first_category=false
-    else
-        echo ',' >> "$tmp"
+# 1. Every tool script on disk (excluding the shared lib/) must be registered.
+while IFS= read -r script; do
+    rel="${script#"$TOOLS_DIR/"}"                 # e.g. info_gathering/nmap.sh
+    if ! jq -e --arg s "$rel" \
+        '[.categories[].tools[].script] | index($s)' "$CANON" >/dev/null; then
+        echo "WARN: tool script not in registry: $rel"
+        status=1
     fi
+done < <(find "$TOOLS_DIR" -type f -name '*.sh' -not -path "$TOOLS_DIR/lib/*" | sort)
 
-    echo "  {" >> "$tmp"
-    echo "    \"id\": \"$category_id\"," >> "$tmp"
-    echo "    \"name\": \"$category_name\"," >> "$tmp"
-    echo "    \"tools\": [" >> "$tmp"
+# 2. Every registered script must exist on disk.
+while IFS= read -r rel; do
+    [ -f "$TOOLS_DIR/$rel" ] || { echo "WARN: registered script missing on disk: $rel"; status=1; }
+done < <(jq -r '.categories[].tools[].script' "$CANON")
 
-    first_tool=true
+# 3. Sync the app asset from the canonical registry.
+mkdir -p "$(dirname "$OUT")"
+cp "$CANON" "$OUT"
 
-    for tool_script in "$category_dir"/*.sh; do
-        [ -f "$tool_script" ] || continue
-
-        tool_id="$(basename "$tool_script" .sh)"
-        script_rel="termux-backend/tools/$category_id/$tool_id.sh"
-
-        # Extract description from first comment line
-        description="$(grep -E '^#' "$tool_script" | head -n 1 | sed 's/^# *//')"
-        [ -z "$description" ] && description="No description available."
-
-        # Example usage
-        example="andrax run-tool $tool_id -- <args>"
-
-        # Privileged detection
-        if grep -q "PRIVILEGED" "$tool_script"; then
-            privileged=true
-        else
-            privileged=false
-        fi
-
-        # Tool comma handling
-        if [ "$first_tool" = true ]; then
-            first_tool=false
-        else
-            echo ',' >> "$tmp"
-        fi
-
-        cat >> "$tmp" <<EOF
-      {
-        "id": "$tool_id",
-        "name": "$tool_id",
-        "script": "$script_rel",
-        "description": "$description",
-        "example": "$example",
-        "privileged": $privileged
-      }
-EOF
-
-    done
-
-    echo "    ]" >> "$tmp"
-    echo -n "  }" >> "$tmp"
-done
-
-echo '] }' >> "$tmp"
-
-mv "$tmp" "$OUT"
-
-echo "ANDRAX tool registry built:"
-echo "  $OUT"
+echo "ANDRAX tool registry synced:"
+echo "  canonical -> $CANON"
+echo "  app asset -> $OUT"
+[ "$status" -eq 0 ] && echo "  validation: OK" || echo "  validation: WARNINGS (see above)"
+exit "$status"

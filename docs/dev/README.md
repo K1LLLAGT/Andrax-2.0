@@ -55,13 +55,16 @@ paths never drift.
 
 ## A note on current state vs. recommendations
 
-This project is at an early, skeleton stage. Some subsystems the documentation
-below describes — a CI system, an APK signing pipeline, a formal release
-process — **do not yet exist as automation in the repository.** Where that is
-the case, the document says so explicitly and clearly separates:
+This project is still at an early stage. The backend, engine, launcher, and
+workflow layers work and are internally consistent; a shell-side **CI** workflow
+runs on every push/PR. What does **not** yet exist as automation is anything that
+depends on the Android **Gradle project** — the APK build, APK signing, and the
+tag-driven release pipeline. Where a document covers one of those, it clearly
+separates:
 
 * **Current state** — what the repo actually does today, and
 * **Recommended** — a concrete, ready-to-adopt design you can drop in.
 
-See [Known gaps](01-architecture-overview.md#known-gaps--inconsistencies) for a
-consolidated list of the rough edges a contributor should be aware of.
+See [Known gaps](01-architecture-overview.md#known-gaps--inconsistencies) for the
+consolidated list — most items are now marked **resolved**, with the Gradle/
+signing/release work called out as the remaining open thread.

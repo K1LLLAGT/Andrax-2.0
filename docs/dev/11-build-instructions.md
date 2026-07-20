@@ -34,16 +34,12 @@ bash tools/normalize_shebangs.sh        # force #!/usr/bin/env bash
 bash tools/fix_permissions.sh           # chmod +x core scripts
 ```
 
-> **Heads-up (known gaps):** `build_registry.sh` currently reads each script's
-> shebang as its description (gap #3), and `workflow_registry.json` ships as a
-> stub so `build_docs.sh` yields an empty `WORKFLOWS.md` unless you run
-> `build_workflow_registry.sh` first (gap #6). Until those are fixed, treat
-> `launcher-system/tool_registry.json` as the authoritative registry and copy it
-> to the app asset:
-> ```sh
-> cp launcher-system/tool_registry.json android-app/src/main/assets/tool_registry.json
-> ```
-> See [Tool registry § 8.1](08-tool-registry.md#81-the-two-copies-important).
+> **Order matters:** run `build_registry.sh` and `build_workflow_registry.sh`
+> **before** `build_docs.sh`, since the docs are generated from the app-asset
+> registries. `build_registry.sh` syncs the app tool registry from the canonical
+> `launcher-system/tool_registry.json` (and validates coverage);
+> `build_workflow_registry.sh` generates the workflow registry from the actual
+> workflows. See [Tool registry § 8.1](08-tool-registry.md#81-the-two-copies-important).
 
 ### Verify the artifacts
 
@@ -160,9 +156,10 @@ echo "allow-external-apps=true" >> ~/.termux/termux.properties
 termux-reload-settings
 ```
 
-…and grant the app `com.termux.permission.RUN_COMMAND`. Ensure ANDRAX-2.0 is
-extracted where `TermuxLauncher.ENGINE_PATH` expects it
-(`/data/data/com.termux/files/home/ANDRAX-2.0/…`; mind gap #1). See
+…and grant the app `com.termux.permission.RUN_COMMAND`. Extract ANDRAX-2.0 to
+the standard location `$HOME/ANDRAX-2.0`
+(`/data/data/com.termux/files/home/ANDRAX-2.0/…`), which is where
+`TermuxLauncher.ENGINE_PATH` and the Magisk bridge both expect it. See
 [Android app § 3.4](03-android-app-structure.md#34-the-app--termux-bridge-one-time-setup).
 
 ## 4. One-shot "build everything" (local)

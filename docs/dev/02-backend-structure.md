@@ -148,7 +148,7 @@ scripting-engine/
 └── scripts/
     ├── list_tools.sh             # jq pretty-print of tools (optionally by category)
     ├── list_workflows.sh         # jq pretty-print of workflows
-    ├── run_tool_by_id.sh         # [see gap #4] currently execs the workflow runner
+    ├── run_tool_by_id.sh         # resolve tool id → launch_tool.sh → tool script
     └── run_workflow_by_id.sh     # resolve workflow id → workflow-engine script
 ```
 
@@ -165,14 +165,11 @@ scripting-engine/
 | `info <tool-id>` | jq lookup: name, category, script, description, example |
 | `help` | Usage (extracted from the header comment) |
 
-`run_workflow_by_id.sh` is the clean example of registry-driven dispatch: it
-reads `.workflows[] | select(.id==$id) | .script` from `ANDRAX_REGISTRY`, then
-execs `workflow-engine/workflows/<script>`.
-
-> **Gap #4:** `run_tool_by_id.sh` does *not* call `launch_tool.sh`; it execs
-> `bin/andrax-workflow-run.sh`. To make `andrax run-tool` resolve tools via the
-> registry, point it at `launcher-system/launch_tool.sh`. See
-> [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies).
+Both `run_tool_by_id.sh` and `run_workflow_by_id.sh` are registry-driven
+dispatch. `run_tool_by_id.sh` execs `launcher-system/launch_tool.sh <id> -- …`
+(id → tool script); `run_workflow_by_id.sh` reads
+`.workflows[] | select(.id==$id) | .script` from `ANDRAX_REGISTRY`, then execs
+`workflow-engine/workflows/<script>`.
 
 ## 2.4 `workflow-engine/` — chained workflows
 
@@ -228,9 +225,11 @@ exists, it finds `workflows/**/<id>.yaml`, extracts `name:`/`run:` pairs, and
 runs each step through the Termux adapter — or the **Magisk adapter** if the
 step's command contains the literal marker `[privileged]`.
 
-> The unified launcher hardcodes `$HOME/ANDRAX/ANDRAX-2.0` and calls
-> underscore-named engine subcommands that don't exist (gaps #1 and #5). Treat
-> it as an alternate/experimental path until reconciled with `paths.sh`.
+> The unified launcher now sources `paths.sh` to resolve `ANDRAX_HOME`
+> portably and calls the engine's real hyphenated subcommands, and the YAML
+> runner substitutes `{{target}}` and strips the `[privileged]` marker. It
+> remains a *parallel* front-end to the scripting engine — either path works;
+> pick one per install to keep logs in one place.
 
 ## 2.6 `magisk-module/andrax-bridge/` — optional root bridge
 

@@ -10,29 +10,25 @@ There are **two** files named `tool_registry.json`:
 
 | File | Role | Read by | Maintained |
 |------|------|---------|------------|
-| `launcher-system/tool_registry.json` | **Canonical** (`ANDRAX_REGISTRY` in `paths.sh`) | `engine.sh`, `launch_tool.sh`, `category_dispatch.sh`, `list_tools.sh`, `run_workflow_by_id.sh` | **By hand** |
-| `android-app/src/main/assets/tool_registry.json` | App catalog asset | `ToolRepository.kt` (the app) | `cp` of the canonical file — **or** output of `tools/build_registry.sh` |
+| `launcher-system/tool_registry.json` | **Canonical** (`ANDRAX_REGISTRY` in `paths.sh`) | `engine.sh`, `launch_tool.sh`, `category_dispatch.sh`, `list_tools.sh`, `run_workflow_by_id.sh` | **By hand** (source of truth) |
+| `android-app/src/main/assets/tool_registry.json` | App catalog asset | `ToolRepository.kt` (the app) | Synced from canonical by `tools/build_registry.sh` |
 
-> **Gap #2 (must decide):** `INSTALL.md` and `android-app/build-notes.md` say to
-> keep the app asset in sync by copying the canonical file:
-> ```sh
-> cp launcher-system/tool_registry.json android-app/src/main/assets/tool_registry.json
-> ```
-> But `tools/build_registry.sh` **generates** the app asset from
-> `termux-backend/tools/*` in a *different* schema (adds `privileged`, omits
-> `.workflows`, weaker descriptions — and currently reads the shebang as the
-> description, gap #3). Pick one flow:
->
-> * **Option A (recommended, low-effort):** treat `launcher-system/tool_registry.json`
->   as hand-authored canonical; the app asset is always a `cp` of it. Retire or
->   repurpose `build_registry.sh` (e.g. make it a *validator* that checks every
->   `tools/*` script has a registry entry, rather than a generator).
-> * **Option B:** make `build_registry.sh` emit the **canonical schema** (below),
->   fix the description bug, write to `launcher-system/tool_registry.json`, and
->   `cp` to the app asset. Then the registry is generated end-to-end.
->
-> Until this is resolved, **treat the `launcher-system/` file as authoritative**
-> and copy it to the app asset — that matches what the running code reads.
+The canonical file is hand-authored; the app asset is a byte-for-byte **copy**
+of it. `tools/build_registry.sh` performs that copy and also **validates** that
+every tool script under `termux-backend/tools/` is registered (and every
+registered script exists on disk). Because the asset is a copy, the two files
+cannot diverge in schema, and the app always sees the curated names,
+descriptions, examples, and icons.
+
+```sh
+bash tools/build_registry.sh    # validate coverage + sync app asset from canonical
+```
+
+> **Design note:** the registry is deliberately *not* generated from the
+> filesystem. Display names (`Nmap` vs the id `nmap`), category icons, curated
+> descriptions, examples, and the `.workflows[]` list can't be derived from the
+> scripts, so generation would be lossy. Canonical-by-hand + validated copy keeps
+> the rich data and still catches drift between the registry and the scripts.
 
 ## 8.2 Canonical schema (`andrax-registry/1`)
 
@@ -136,7 +132,5 @@ See the [Contribution guide](10-contribution-guide.md) for the full checklist.
 | Forensics (`forensics`) | `binwalk`, `strings` |
 | Reporting (`reporting`) | `generate_report`, `markdown_to_html` |
 
-> `docs/TOOLS.md` is the generated, always-current version of this table. Note it
-> currently shows `!/usr/bin/env bash` as every description because of the
-> builder bug (gap #3) — the table above reflects the real, canonical
-> descriptions.
+> `docs/TOOLS.md` is the generated, always-current version of this table, with
+> the real curated descriptions (regenerate with `tools/build_docs.sh`).

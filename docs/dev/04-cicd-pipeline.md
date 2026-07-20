@@ -1,11 +1,15 @@
 # 4. CI/CD Pipeline
 
-> **Current state:** ANDRAX 2.0 has **no continuous-integration automation** in
-> the repository. There is no `.github/` directory, no CI config, and no Gradle
-> wrapper. "CI/CD" today means a set of **local, developer-run shell scripts**
-> under `tools/` that build the registries and docs and audit the tree. This
-> document describes (A) that current local pipeline and (B) a concrete,
-> ready-to-adopt GitHub Actions design.
+> **Current state:** a shell-side CI workflow now exists at
+> `.github/workflows/ci.yml` — it runs on every push and PR (syntax check,
+> ShellCheck, registry/doc JSON validity, generated-artifact drift check, and the
+> backend consistency + broken-script audits). There is still **no** Gradle
+> project, so the Android app build and the release/signing jobs are documented
+> and stubbed but not yet active. Underneath CI, the same checks are just the
+> **local, developer-run shell scripts** under `tools/`, so you can reproduce CI
+> on your machine. This document describes (A) the local pipeline and (B) the
+> GitHub Actions design — the parts of (B) already committed, and the parts still
+> recommended.
 
 ## A. Current pipeline (local, manual)
 
@@ -58,26 +62,33 @@ The full `tools/` inventory:
 | `test_pipeline.sh` | Integration test: launcher lists + runs `recon_basic` |
 | `test_android_ipc.sh` | App↔backend IPC end-to-end test |
 
-> Note the current builders have known bugs (descriptions read the shebang; the
-> workflow registry asset is a stub). See
-> [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies)
-> #3 and #6. Fixing those is a prerequisite to trusting generated artifacts in CI.
+> The builders are trustworthy: `build_registry.sh` syncs the app tool registry
+> from the curated canonical registry (and validates coverage),
+> `build_workflow_registry.sh` generates the workflow registry from the actual
+> workflows, and `build_docs.sh` renders the docs from those. Re-running them is
+> idempotent, which is exactly what the CI drift check relies on.
 
-## B. Recommended CI/CD (GitHub Actions)
+## B. CI/CD workflows (GitHub Actions)
 
-Adopt three workflows. Place them under `.github/workflows/`.
+Three workflows under `.github/workflows/`. **`ci.yml` is committed and active**;
+`release.yml` and `pages.yml` are recommended designs to add.
 
-### B.1 `ci.yml` — validate every push & PR
+### B.1 `ci.yml` — validate every push & PR (committed)
 
-Gates that should fail the build:
+The active workflow gates the build on:
 
-1. **ShellCheck** all `*.sh`.
-2. **Registry/doc drift check** — regenerate the registries + docs and fail if
-   `git diff` is non-empty (i.e. generated artifacts weren't committed).
-3. **JSON validity** — `jq . tool_registry.json` on both copies.
-4. **Consistency audit** — run `tools/backend_consistency_auditor.sh` and
+1. **Syntax check** — `bash -n` on every tracked `*.sh`.
+2. **ShellCheck** — at `-S error` severity (hard errors fail; style/info don't).
+3. **JSON validity** — `jq empty` on the canonical registry and both app-asset
+   registries.
+4. **Registry/doc drift check** — regenerate the registries + docs and fail if
+   `git diff` on the generated files is non-empty (artifacts weren't committed).
+5. **Consistency audit** — `tools/backend_consistency_auditor.sh` and
    `tools/broken_script_locator.sh`; non-zero exit fails.
-5. **App build** — `./gradlew assembleDebug` once the Gradle project exists.
+
+A commented-out `app` job (`./gradlew assembleDebug`) is included to enable once
+the Gradle project exists. The committed file is the source of truth; the sketch
+below shows the shape.
 
 ```yaml
 name: ci

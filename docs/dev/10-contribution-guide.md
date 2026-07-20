@@ -29,13 +29,14 @@ tools and workflows, the maintainer tooling under `tools/`, and the PR checklist
 * **Shebang:** `#!/usr/bin/env bash` on every `*.sh`
   (`tools/normalize_shebangs.sh` enforces it).
 * **First comment line** is a one-line human description
-  (`ANDRAX 2.0 :: <Category> :: <tool>` for tools). Builders read this line, so
-  keep it meaningful (see gap #3 re: the current builder reading the shebang).
+  (`ANDRAX 2.0 :: <Category> :: <tool>` for tools). Generators fall back to this
+  line (skipping the shebang) when curated registry text is absent, so keep it
+  meaningful.
 * **Strict mode** where practical: `set -euo pipefail` (workflows use
   `set -uo pipefail` so a single failed step doesn't abort the chain).
 * **Resolve paths portably** by sourcing `termux-backend/config/paths.sh`; never
-  hardcode `$HOME/ANDRAX…` (that's exactly the gap #1 inconsistency being cleaned
-  up). Use the `ANDRAX_*` variables.
+  hardcode `$HOME/ANDRAX…`. Use the `ANDRAX_*` variables — every front-end now
+  does this.
 * **Pass ShellCheck** (`-S warning`) with no new findings.
 * **snake_case** ids for tools/categories/workflows, matching directory names.
 
@@ -126,14 +127,18 @@ Inspection/debug helpers (as needed): `tool_dependency_mapper.sh`,
 
 ## 10.8 Good first contributions
 
-* **Fix a documented gap** — the highest-value work right now. See
-  [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies):
-  reconcile the three `ANDRAX_HOME` conventions (#1), fix `build_registry.sh`'s
-  description extraction (#3), repoint `run_tool_by_id.sh` at `launch_tool.sh`
-  (#4), fix `andrax-launcher.sh`'s subcommand names (#5), or populate
-  `workflow_registry.json` (#6).
+The original consistency bugs (`ANDRAX_HOME` conventions, the registry/description
+builders, the tool/workflow dispatch mismatches, the stub workflow registry) have
+been fixed — see [Architecture § Known gaps](01-architecture-overview.md#known-gaps--inconsistencies).
+The high-value remaining work:
+
+* **Flesh out the Gradle project** so the app actually builds
+  ([Build § 3](11-build-instructions.md#3-build-the-android-app-apk)), then
+  enable the `app` job in `.github/workflows/ci.yml`.
+* **Add the release workflow + APK signing** from
+  [CI/CD § B.2](04-cicd-pipeline.md#b2-releaseyml--build--publish-on-a-tag) and
+  [Signing](05-signing-pipeline.md).
 * **Add a `tools/bump_version.sh`** to enforce version consistency
   ([Versioning § 6.4](06-versioning-system.md#64-bumping-a-version-the-rule)).
-* **Add the CI workflows** from [CI/CD § B](04-cicd-pipeline.md#b-recommended-cicd-github-actions).
-* **Flesh out the Gradle project** so the app actually builds
-  ([Build § 3](11-build-instructions.md#3-build-the-android-app-apk)).
+* **Grow the YAML workflow runner** into a real parser with multi-variable
+  substitution ([Workflow registry § 9.4](09-workflow-registry.md#94-anatomy-of-a-yaml-workflow)).

@@ -100,8 +100,9 @@ Used by `README.md`, `INSTALL.md`, and `TermuxLauncher.kt`:
 ```
 andrax run-tool nmap -- -sV scanme.nmap.org
    → scripting-engine/engine.sh  (case: run-tool)
-      → scripting-engine/scripts/run_tool_by_id.sh   [see gap #4]
-         → bin/andrax-workflow-run.sh
+      → scripting-engine/scripts/run_tool_by_id.sh
+         → launcher-system/launch_tool.sh  (registry id → script)
+            → termux-backend/tools/<category>/<tool>.sh
 ```
 
 ```
@@ -157,52 +158,54 @@ prepends Go/Rust/pip user bins.
 
 ## Known gaps & inconsistencies
 
-These are real rough edges in the current tree. They are documented here so
-contributors don't trip over them, and are cross-referenced from the relevant
-per-subsystem docs. None are fatal, but all are worth fixing.
+Most of the original rough edges have been **fixed** — they're recorded here
+(resolved) so the history is clear and so the cross-references in other docs
+still make sense. The remaining open items are called out at the end.
 
-1. **Three different `ANDRAX_HOME` conventions.**
-   - `paths.sh` auto-resolves it to the repo root (correct, portable).
-   - `launcher/andrax-launcher.sh`, `bin/*.sh`, and the Magisk scripts hardcode
-     `$HOME/ANDRAX/ANDRAX-2.0` (an extra `ANDRAX/` level).
-   - `TermuxLauncher.kt` and `android-app/docs/architecture.md` use
-     `$HOME/ANDRAX-2.0` (i.e. `/data/data/com.termux/files/home/ANDRAX-2.0`).
-   These must be reconciled before the app↔backend bridge and the unified
-   launcher can work on the same install. The `paths.sh` convention is the one
-   to standardize on.
+### Resolved
 
-2. **Two tool registries with different schemas.**
-   - `launcher-system/tool_registry.json` — hand-maintained, rich, schema
-     `andrax-registry/1`, includes a `.workflows[]` array. This is
-     `ANDRAX_REGISTRY` (what the engine actually reads).
-   - `android-app/src/main/assets/tool_registry.json` — the **output target** of
-     `tools/build_registry.sh`, a *different* shape (adds `privileged`, no
-     workflows). `INSTALL.md`/`build-notes.md` say to `cp` the canonical one
-     over it. So the builder and the copy-sync instruction fight each other.
-   See [Tool registry](08-tool-registry.md) for the resolution.
+1. **`ANDRAX_HOME` conventions reconciled.** ✅ The shell front-ends
+   (`launcher/andrax-launcher.sh`, `launcher/andrax-ipc-contract.sh`,
+   `bin/andrax-workflow-run.sh`, `bin/andrax-tool-wrapper.sh`) now source
+   `termux-backend/config/paths.sh` and derive `ANDRAX_HOME` from their own
+   location — install-location independent, no more hardcoded
+   `$HOME/ANDRAX/ANDRAX-2.0`. The Magisk `post-fs-data.sh` and the app's
+   `TermuxLauncher.ENGINE_PATH` use the documented install path
+   `$HOME/ANDRAX-2.0` (`/data/data/com.termux/files/home/ANDRAX-2.0`), which is
+   now the single standard location.
 
-3. **`build_registry.sh` description extraction is wrong.** It grabs the first
-   `^#` line of each tool script, which is the shebang (`#!/usr/bin/env bash`),
-   so generated descriptions read `!/usr/bin/env bash` (visible in the current
-   `docs/TOOLS.md`). It should skip the shebang and read the first real comment.
+2. **Registry duplication resolved.** ✅ `launcher-system/tool_registry.json` is
+   the sole canonical registry (`ANDRAX_REGISTRY`). `tools/build_registry.sh` is
+   now a **sync + validator**: it verifies every tool script is registered (and
+   vice-versa) and copies the canonical file to the app asset, so the two copies
+   can no longer diverge in schema. See [Tool registry](08-tool-registry.md).
 
-4. **`run_tool_by_id.sh` runs the *workflow* runner.**
-   `scripting-engine/scripts/run_tool_by_id.sh` execs
-   `bin/andrax-workflow-run.sh`, not `launch_tool.sh`. The name says "tool" but
-   the body dispatches a workflow. `engine.sh`'s `run-tool` case therefore does
-   not currently reach `launch_tool.sh`.
+3. **`build_registry.sh` description bug gone.** ✅ Because the app asset is now a
+   copy of the curated canonical registry, descriptions are the real,
+   hand-written ones (no more `!/usr/bin/env bash`). `build_workflow_registry.sh`
+   independently skips the shebang when it falls back to a script's header
+   comment.
 
-5. **`andrax-launcher.sh` calls non-existent engine subcommands.** It invokes
-   `engine.sh run_tool_by_id / list_tools / list_workflows` (underscores), but
-   `engine.sh` only recognizes the hyphenated forms (`run-tool`, `list-tools`,
-   `list-workflows`). Those calls hit the engine's unknown-command branch.
+4. **`run_tool_by_id.sh` now runs tools.** ✅ It resolves the tool through
+   `launcher-system/launch_tool.sh` (registry id → script), so `andrax run-tool`
+   reaches the correct tool script.
 
-6. **`workflow_registry.json` is a stub.** The app asset is `{ "test": true }`,
-   so `build_docs.sh` produces an empty `docs/WORKFLOWS.md`. Run
-   `tools/build_workflow_registry.sh` to populate it. The canonical workflow
-   list currently lives inside `launcher-system/tool_registry.json` `.workflows[]`.
+5. **`andrax-launcher.sh` subcommands corrected.** ✅ It now calls the engine's
+   real hyphenated subcommands (`run-tool … -- …`, `list-tools`,
+   `list-workflows`).
 
-7. **No CI, no signing config, no Gradle wrapper.** There is no `.github/`,
-   no `*.gradle` files, and no keystore handling in the repo. The
-   [CI/CD](04-cicd-pipeline.md) and [Signing](05-signing-pipeline.md) documents
-   describe the current manual reality and a recommended automated design.
+6. **`workflow_registry.json` populated.** ✅ `tools/build_workflow_registry.sh`
+   generates it from the actual shell + YAML workflows (enriched with curated
+   names/descriptions from the canonical registry), and `docs/WORKFLOWS.md` is no
+   longer empty. As a bonus, the YAML workflow runner now substitutes
+   `{{target}}` and correctly strips/handles the `[privileged]` marker.
+
+### Still open
+
+7. **No APK signing config, no Gradle wrapper.** The Android app is still a
+   source **skeleton** with no Gradle project, so there is nothing to sign yet.
+   A working shell-side **CI** workflow now exists at `.github/workflows/ci.yml`
+   (syntax + shellcheck + registry/doc drift + audits); the app-build and
+   release/signing jobs are documented and stubbed but await the Gradle project.
+   See [CI/CD](04-cicd-pipeline.md), [Signing](05-signing-pipeline.md), and
+   [Build § 3](11-build-instructions.md#3-build-the-android-app-apk).

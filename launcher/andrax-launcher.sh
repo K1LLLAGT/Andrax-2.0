@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # ANDRAX 2.0 Unified Launcher
 
-ANDRAX_HOME="$HOME/ANDRAX/ANDRAX-2.0"
+# Resolve ANDRAX_HOME portably from this script's location (launcher/ -> root)
+# instead of hardcoding an install path. paths.sh also exports the component
+# roots used below.
+_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$_self_dir/../termux-backend/config/paths.sh"
 
 # Subsystems
-SCRIPT_ENGINE="$ANDRAX_HOME/scripting-engine/engine.sh"
+SCRIPT_ENGINE="$ANDRAX_ENGINE_DIR/engine.sh"
 WORKFLOW_ENGINE="$ANDRAX_HOME/bin/andrax-workflow-run.sh"
 TOOL_WRAPPER="$ANDRAX_HOME/bin/andrax-tool-wrapper.sh"
 
@@ -35,15 +39,15 @@ case "$CMD" in
         TOOL_ID="$1"
         shift
         log "Running tool: $TOOL_ID"
-        bash "$SCRIPT_ENGINE" run_tool_by_id "$TOOL_ID" "$@" | tee -a "$LOG_DIR/tool-$TOOL_ID.log"
+        bash "$SCRIPT_ENGINE" run-tool "$TOOL_ID" -- "$@" | tee -a "$LOG_DIR/tool-$TOOL_ID.log"
         ;;
 
     list-tools)
-        bash "$SCRIPT_ENGINE" list_tools
+        bash "$SCRIPT_ENGINE" list-tools
         ;;
 
     list-workflows)
-        bash "$SCRIPT_ENGINE" list_workflows
+        bash "$SCRIPT_ENGINE" list-workflows
         ;;
 
     *)
