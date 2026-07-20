@@ -1,0 +1,182 @@
+# 3. Android App Structure
+
+The Android app (`android-app/`) is a **Kotlin skeleton** — a thin, dependency-
+light front-end that renders the ANDRAX-style category/tool browser and
+dispatches execution to the Termux backend. It performs **no** privileged or
+security-sensitive operations. It ships only the source that is unique to
+ANDRAX; you wire the Gradle project around it (see
+[Build instructions § APK](11-build-instructions.md#3-build-the-android-app-apk)).
+
+## 3.1 Layout
+
+```
+android-app/
+├── build-notes.md                 # how to make the skeleton buildable (Gradle, theme)
+├── docs/
+│   ├── architecture.md            # app-layer architecture (authoritative for the app)
+│   └── launcher_stub.sh
+└── src/main/
+    ├── AndroidManifest.xml
+    ├── assets/
+    │   ├── tool_registry.json      # copy of the backend registry (app catalog)
+    │   └── workflow_registry.json  # STUB: { "test": true }  (gap #6)
+    └── java/com/andrax/two/
+        ├── MainActivity.kt
+        ├── data/ToolRepository.kt
+        ├── launcher/TermuxLauncher.kt
+        ├── model/Category.kt
+        ├── model/Tool.kt
+        └── ui/
+            ├── CategoryListActivity.kt
+            ├── ToolListActivity.kt
+            └── ToolDetailActivity.kt
+```
+
+## 3.2 Layered design
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ UI (Activities)                                            │
+│   MainActivity → CategoryListActivity → ToolListActivity   │
+│                                       → ToolDetailActivity  │
+├──────────────────────────────────────────────────────────┤
+│ Data                                                       │
+│   ToolRepository  (parses assets/tool_registry.json)       │
+│   model: Category, Tool                                     │
+├──────────────────────────────────────────────────────────┤
+│ Launcher bridge                                            │
+│   TermuxLauncher  (RUN_COMMAND intent → engine.sh)         │
+└──────────────────────────────────────────────────────────┘
+             │  com.termux.RUN_COMMAND intent
+             ▼
+     Termux backend (scripting-engine/engine.sh)
+```
+
+## 3.3 Components
+
+### Activities (`ui/`)
+
+| Screen | Responsibility |
+|--------|----------------|
+| `MainActivity` | Entry point; immediately forwards to `CategoryListActivity` and `finish()`s. A production build might show a splash / authorization acknowledgement here. |
+| `CategoryListActivity` | Lists categories in a `RecyclerView`. |
+| `ToolListActivity` | Lists tools inside the chosen category. |
+| `ToolDetailActivity` | Shows a tool, takes an argument string, and exposes the **Run** button that calls `TermuxLauncher`. |
+
+The prototype builds views programmatically to stay dependency-light. A
+production build would use XML layouts or Jetpack Compose — `build-notes.md`
+includes a Compose version of the detail screen.
+
+### Data model (`model/`)
+
+`Tool.kt` and `Category.kt` are plain data classes that mirror the registry JSON
+one-to-one:
+
+```kotlin
+data class Tool(val id, val name, val script, val description, val example)
+data class Category(val id, val name, val icon, val tools: List<Tool>)
+```
+
+### `data/ToolRepository.kt`
+
+A singleton that reads `assets/tool_registry.json` with `org.json` (ships with
+the Android platform — no dependency), parses it into `List<Category>`, and
+caches the result. Public API:
+
+```kotlin
+ToolRepository.categories(context): List<Category>
+ToolRepository.category(context, id): Category?
+ToolRepository.tool(context, id): Tool?
+```
+
+Because the app and the backend read the **same registry shape**, tool ids and
+script paths never drift — provided the asset is kept in sync (see § 3.5).
+
+### `launcher/TermuxLauncher.kt` — the bridge
+
+This is the only place the app touches the outside world. It sends Termux's
+documented `RUN_COMMAND` intent to `com.termux.app.RunCommandService`:
+
+```kotlin
+Intent().apply {
+  setClassName("com.termux", "com.termux.app.RunCommandService")
+  action = "com.termux.RUN_COMMAND"
+  putExtra("com.termux.RUN_COMMAND_PATH", ENGINE_PATH)          // engine.sh
+  putExtra("com.termux.RUN_COMMAND_ARGUMENTS", argv)            // ["run-tool", id, "--", ...]
+  putExtra("com.termux.RUN_COMMAND_WORKDIR", ANDRAX_HOME)
+  putExtra("com.termux.RUN_COMMAND_BACKGROUND", false)          // foreground, live output
+  putExtra("com.termux.RUN_COMMAND_SESSION_ACTION", "0")
+}
+context.startForegroundService(intent)
+```
+
+Public API: `runTool(context, toolId, args)` and
+`runWorkflow(context, workflowId, args)` — both build the `argv` (`run-tool`/
+`run-workflow`, id, `--`, args…) and dispatch. If Termux is missing or the
+permission isn't granted, `dispatch` catches the exception and opens Termux's
+F-Droid page.
+
+`ENGINE_PATH` is hardcoded to
+`/data/data/com.termux/files/home/ANDRAX-2.0/scripting-engine/engine.sh`.
+
+> **Gap #1:** this path (`…/home/ANDRAX-2.0/…`) differs from the unified
+> launcher's `$HOME/ANDRAX/ANDRAX-2.0`. Standardize on one install location.
+
+## 3.4 The app ↔ Termux bridge (one-time setup)
+
+For the `RUN_COMMAND` intent to be accepted, the operator must once:
+
+```sh
+# In Termux
+mkdir -p ~/.termux
+echo "allow-external-apps=true" >> ~/.termux/termux.properties
+termux-reload-settings
+```
+
+…and grant the app `com.termux.permission.RUN_COMMAND` (declared in the
+manifest). ANDRAX-2.0 must be extracted at the path `ENGINE_PATH` points to.
+
+### Why intents, not a socket/HTTP server?
+
+* No always-on background service; no extra attack surface.
+* The user always sees a real terminal session with live output and can Ctrl-C.
+* Works within Android's app-sandbox and background-execution limits.
+
+An alternate bridge (documented, not default) is a local Unix socket serviced by
+a `termux-services` daemon; the intent path is simpler and needs no daemon.
+
+## 3.5 Manifest & permissions
+
+`AndroidManifest.xml` declares only what the thin front-end needs:
+
+* `com.termux.permission.RUN_COMMAND` — to dispatch to Termux.
+* `android.permission.INTERNET` — solely for the F-Droid fallback.
+* `<queries><package android:name="com.termux"/></queries>` — Android 11+
+  package visibility so the app can see/target Termux.
+
+Only `MainActivity` is exported (the launcher entry); the three browser
+activities are `exported="false"`.
+
+## 3.6 Keeping the app catalog in sync
+
+The app asset `assets/tool_registry.json` must match the canonical backend
+registry. After any backend registry change:
+
+```sh
+cp launcher-system/tool_registry.json \
+   android-app/src/main/assets/tool_registry.json
+```
+
+> **Gap #2:** `tools/build_registry.sh` *generates* a differently-shaped
+> registry into this same asset path. Decide on one flow — either treat
+> `launcher-system/tool_registry.json` as canonical and `cp` it (current
+> `INSTALL.md`/`build-notes.md` guidance), or fix `build_registry.sh` to emit
+> the canonical schema and generate both. See [Tool registry](08-tool-registry.md).
+
+## 3.7 Security & input handling notes
+
+* The prototype tokenizes the argument field naively (`split` on whitespace). A
+  production build **must** use a shell-aware splitter and validate/escape
+  arguments before handing them to Termux.
+* Authorization acknowledgement is enforced by the **backend** (`require_scope`),
+  not the app — so it applies to CLI use too. Don't move the gate into the UI.
