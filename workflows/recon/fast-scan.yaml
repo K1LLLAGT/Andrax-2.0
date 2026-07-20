@@ -1,0 +1,6 @@
+id: fast-scan
+steps:
+  - name: host-discovery
+    run: "ping -c 1 {{target}}"
+  - name: port-scan
+    run: "nmap -T4 -p- {{target}}"

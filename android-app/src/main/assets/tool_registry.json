@@ -1,0 +1,241 @@
+{ "categories": [
+  {
+    "id": "database_assessment",
+    "name": "database assessment",
+    "tools": [
+      {
+        "id": "dbassess",
+        "name": "dbassess",
+        "script": "termux-backend/tools/database_assessment/dbassess.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool dbassess -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "exploitation",
+    "name": "exploitation",
+    "tools": [
+      {
+        "id": "metasploit",
+        "name": "metasploit",
+        "script": "termux-backend/tools/exploitation/metasploit.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool metasploit -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "msfvenom",
+        "name": "msfvenom",
+        "script": "termux-backend/tools/exploitation/msfvenom.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool msfvenom -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "forensics",
+    "name": "forensics",
+    "tools": [
+      {
+        "id": "binwalk",
+        "name": "binwalk",
+        "script": "termux-backend/tools/forensics/binwalk.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool binwalk -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "strings",
+        "name": "strings",
+        "script": "termux-backend/tools/forensics/strings.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool strings -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "info_gathering",
+    "name": "info gathering",
+    "tools": [
+      {
+        "id": "dnsenum",
+        "name": "dnsenum",
+        "script": "termux-backend/tools/info_gathering/dnsenum.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool dnsenum -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "nmap",
+        "name": "nmap",
+        "script": "termux-backend/tools/info_gathering/nmap.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool nmap -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "whois",
+        "name": "whois",
+        "script": "termux-backend/tools/info_gathering/whois.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool whois -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "lib",
+    "name": "lib",
+    "tools": [
+      {
+        "id": "toolkit",
+        "name": "toolkit",
+        "script": "termux-backend/tools/lib/toolkit.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool toolkit -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "password_attacks",
+    "name": "password attacks",
+    "tools": [
+      {
+        "id": "hydra",
+        "name": "hydra",
+        "script": "termux-backend/tools/password_attacks/hydra.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool hydra -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "john",
+        "name": "john",
+        "script": "termux-backend/tools/password_attacks/john.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool john -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "reporting",
+    "name": "reporting",
+    "tools": [
+      {
+        "id": "generate_report",
+        "name": "generate_report",
+        "script": "termux-backend/tools/reporting/generate_report.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool generate_report -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "markdown_to_html",
+        "name": "markdown_to_html",
+        "script": "termux-backend/tools/reporting/markdown_to_html.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool markdown_to_html -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "reverse_engineering",
+    "name": "reverse engineering",
+    "tools": [
+      {
+        "id": "apkinspect",
+        "name": "apkinspect",
+        "script": "termux-backend/tools/reverse_engineering/apkinspect.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool apkinspect -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "sniffing_spoofing",
+    "name": "sniffing spoofing",
+    "tools": [
+      {
+        "id": "mitmproxy",
+        "name": "mitmproxy",
+        "script": "termux-backend/tools/sniffing_spoofing/mitmproxy.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool mitmproxy -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "vuln_analysis",
+    "name": "vuln analysis",
+    "tools": [
+      {
+        "id": "nikto",
+        "name": "nikto",
+        "script": "termux-backend/tools/vuln_analysis/nikto.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool nikto -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "sqlmap",
+        "name": "sqlmap",
+        "script": "termux-backend/tools/vuln_analysis/sqlmap.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool sqlmap -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "web_apps",
+    "name": "web apps",
+    "tools": [
+      {
+        "id": "dirb",
+        "name": "dirb",
+        "script": "termux-backend/tools/web_apps/dirb.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool dirb -- <args>",
+        "privileged": false
+      }
+,
+      {
+        "id": "wpscan",
+        "name": "wpscan",
+        "script": "termux-backend/tools/web_apps/wpscan.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool wpscan -- <args>",
+        "privileged": false
+      }
+    ]
+  },
+  {
+    "id": "wireless_attacks",
+    "name": "wireless attacks",
+    "tools": [
+      {
+        "id": "wifi_scan",
+        "name": "wifi_scan",
+        "script": "termux-backend/tools/wireless_attacks/wifi_scan.sh",
+        "description": "!/usr/bin/env bash",
+        "example": "andrax run-tool wifi_scan -- <args>",
+        "privileged": false
+      }
+    ]
+  }] }

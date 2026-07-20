@@ -1,0 +1,32 @@
+$HOME/ANDRAX/
+├── bin/
+│   ├── andrax-workflow-run.sh
+│   ├── andrax-tool-wrapper.sh
+│   └── adapters/
+│       ├── adapter-termux.sh
+│       └── adapter-magisk.sh
+│
+├── launcher/
+│   ├── andrax-launcher.sh
+│   ├── ipc/
+│   │   ├── cmd.sock        # optional UNIX socket
+│   │   └── queue/
+│   └── logs/
+│
+├── workflows/
+│   ├── recon/
+│   │   └── fast-scan.yaml
+│   ├── exploitation/
+│   ├── post/
+│   └── custom/
+│
+├── etc/
+│   ├── andrax.conf
+│   └── workflow.conf
+│
+├── var/
+│   ├── log/
+│   └── run/
+│
+└── modules/
+    └── example-module/

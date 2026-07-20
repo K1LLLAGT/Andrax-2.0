@@ -1,0 +1,6 @@
+id=andrax-bridge
+name=ANDRAX 2.0 Privileged Bridge
+version=1.0
+versionCode=1
+author=Greg
+description=Bind-mount privileged binaries into ANDRAX Termux backend.
